@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>ATLAS Browser Diagnostics 0.1</title>
+  <style>
+    /* Reset & Base Theme: Dark high-contrast for legacy displays and low-power devices */
+    * {
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 12px;
+      background-color: #121212;
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+      color: #ffffff;
+      font-weight: 600;
+    }
+    h1 {
+      font-size: 1.35rem;
+      border-bottom: 2px solid #333333;
+      padding-bottom: 8px;
+      margin-bottom: 6px;
+    }
+    h2 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: #81d4fa;
+    }
+    p {
+      margin: 0 0 10px 0;
+    }
+    .subtitle {
+      color: #9e9e9e;
+      font-size: 0.85rem;
+      margin-bottom: 14px;
+    }
+
+    /* Summary Bar */
+    .summary-bar {
+      display: -webkit-box;
+      display: -moz-box;
+      display: -webkit-flex;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+      background-color: #1e1e1e;
+      border: 1px solid #333333;
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .summary-item {
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    /* Cards */
+    .card {
+      background-color: #1e1e1e;
+      border: 1px solid #333333;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    .card-highlight {
+      border-color: #0288d1;
+    }
+
+    /* Buttons (Large Touch Targets >= 48px) */
+    .btn {
+      display: inline-block;
+      min-height: 48px;
+      min-width: 48px;
+      padding: 12px 18px;
+      margin: 4px 6px 4px 0;
+      background-color: #0288d1;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      font-size: 15px;
+      font-weight: bold;
+      text-align: center;
+      cursor: pointer;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    .btn:active {
+      background-color: #0277bd;
+    }
+    .btn-secondary {
+      background-color: #424242;
+    }
+    .btn-secondary:active {
+      background-color: #616161;
+    }
+    .btn-success {
+      background-color: #2e7d32;
+    }
+    .btn-success:active {
+      background-color: #1b5e20;
+    }
+
+    /* Form Controls */
+    input[type="text"], select {
+      min-height: 44px;
+      padding: 8px 12px;
+      background-color: #2a2a2a;
+      border: 1px solid #555555;
+      border-radius: 4px;
+      color: #ffffff;
+      font-size: 14px;
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: 8px;
+      display: block;
+      box-sizing: border-box;
+    }
+
+    /* Result Status Badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .badge-pass {
+      background-color: #1b5e20;
+      color: #c8e6c9;
+      border: 1px solid #2e7d32;
+    }
+    .badge-fail {
+      background-color: #b71c1c;
+      color: #ffcdd2;
+      border: 1px solid #c62828;
+    }
+    .badge-limited {
+      background-color: #e65100;
+      color: #ffe0b2;
+      border: 1px solid #ef6c00;
+    }
+    .badge-info {
+      background-color: #0d47a1;
+      color: #bbdefb;
+      border: 1px solid #1565c0;
+    }
+    .badge-not-tested {
+      background-color: #37474f;
+      color: #cfd8dc;
+      border: 1px solid #546e7a;
+    }
+
+    /* Tables */
+    .diag-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+      font-size: 0.9rem;
+    }
+    .diag-table th, .diag-table td {
+      text-align: left;
+      padding: 8px 6px;
+      border-bottom: 1px solid #2d2d2d;
+      vertical-align: top;
+    }
+    .diag-table th {
+      color: #90caf9;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      border-bottom: 1px solid #444444;
+    }
+    .diag-table td.col-status {
+      width: 95px;
+      white-space: nowrap;
+    }
+    .diag-table td.col-name {
+      width: 32%;
+      font-weight: 500;
+    }
+    .diag-table td.col-desc {
+      color: #bdbdbd;
+      font-family: Consolas, "Liberation Mono", Courier, monospace;
+      font-size: 0.82rem;
+      word-break: break-word;
+    }
+
+    /* Live Monitor Grid */
+    .metric-grid {
+      display: -webkit-box;
+      display: -moz-box;
+      display: -webkit-flex;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .metric-cell {
+      flex: 1 1 200px;
+      background-color: #262626;
+      border: 1px solid #383838;
+      border-radius: 4px;
+      padding: 8px 12px;
+    }
+    .metric-label {
+      color: #9e9e9e;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+    .metric-val {
+      color: #4fc3f7;
+      font-family: Consolas, "Liberation Mono", Courier, monospace;
+      font-size: 1.15rem;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+
+    /* Touch Test Area */
+    .touch-pad {
+      min-height: 140px;
+      background-color: #262626;
+      border: 2px dashed #0288d1;
+      border-radius: 6px;
+      display: -webkit-box;
+      display: -moz-box;
+      display: -webkit-flex;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px;
+      color: #81d4fa;
+      font-weight: bold;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      margin-top: 8px;
+    }
+    .touch-pad.active {
+      background-color: #003c5f;
+      border-color: #4fc3f7;
+    }
+
+    /* Output text area */
+    textarea.report-box {
+      width: 100%;
+      min-height: 200px;
+      background-color: #181818;
+      border: 1px solid #444444;
+      border-radius: 4px;
+      color: #81c784;
+      font-family: Consolas, "Liberation Mono", Courier, monospace;
+      font-size: 0.8rem;
+      padding: 8px;
+      box-sizing: border-box;
+      white-space: pre;
+    }
+    .note {
+      font-size: 0.82rem;
+      color: #ffa726;
+      margin: 6px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <h1>ATLAS Browser Diagnostics 0.1</h1>
+  <div class="subtitle">
+    Target: Firefox 55.0.2 / Android 4.0.4 (Ice Cream Sandwich) &bull; Single-file self-contained diagnostic suite
+  </div>
+
+  <!-- Global Action Buttons -->
+  <div style="margin-bottom: 12px;">
+    <button id="btnRunAll" class="btn" type="button">Run All Diagnostics</button>
+    <button id="btnReset" class="btn btn-secondary" type="button">Reset</button>
+  </div>
+
+  <!-- Summary Counters -->
+  <div class="summary-bar">
+    <div class="summary-item badge-pass" id="cntPass">PASS: 0</div>
+    <div class="summary-item badge-fail" id="cntFail">FAIL: 0</div>
+    <div class="summary-item badge-limited" id="cntLimited">LIMITED: 0</div>
+    <div class="summary-item badge-info" id="cntInfo">INFO: 0</div>
+    <div class="summary-item badge-not-tested" id="cntNotTested">NOT TESTED: 0</div>
+  </div>
+
+  <!-- Card 1: Live Display, Viewport & Orientation Monitor -->
+  <div class="card card-highlight">
+    <h2>1. Dynamic Display & Viewport Monitor</h2>
+    <p style="font-size:0.85rem; color:#bbb;">
+      Values update dynamically in real time on <code>resize</code> and <code>orientationchange</code> events. No hardcoded resolutions.
+    </p>
+    <div class="metric-grid">
+      <div class="metric-cell">
+        <div class="metric-label">Screen Dimensions</div>
+        <div class="metric-val" id="dispScreen">Measuring...</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Window Viewport (Inner)</div>
+        <div class="metric-val" id="dispInner">Measuring...</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Document Client Area</div>
+        <div class="metric-val" id="dispClient">Measuring...</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Device Pixel Ratio (DPR)</div>
+        <div class="metric-val" id="dispDPR">Measuring...</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Orientation</div>
+        <div class="metric-val" id="dispOrientation">Measuring...</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">Resize Events Fired</div>
+        <div class="metric-val" id="dispResizeCount">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: Environment & Platform Metadata -->
+  <div class="card">
+    <h2>2. Platform & Environment Metadata</h2>
+    <table class="diag-table">
+      <thead>
+        <tr>
+          <th class="col-status">Status</th>
+          <th class="col-name">Property</th>
+          <th class="col-desc">Reported Value</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyEnv"></tbody>
+    </table>
+  </div>
+
+  <!-- Card 3: JavaScript Engine & Syntax Baseline -->
+  <div class="card">
+    <h2>3. JavaScript Engine & Syntax Verification</h2>
+    <p style="font-size:0.85rem; color:#bbb;">
+      Runner execution uses strict ES5. ES6 and newer language features are tested defensively via isolated function calls.
+    </p>
+    <table class="diag-table">
+      <thead>
+        <tr>
+          <th class="col-status">Status</th>
+          <th class="col-name">Feature</th>
+          <th class="col-desc">Result / Evaluation</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyJs"></tbody>
+    </table>
+  </div>
+
+  <!-- Card 4: Controlled Storage Verification -->
+  <div class="card">
+    <h2>4. Storage APIs (Controlled Verification)</h2>
+    <p class="note">
+      Notice: Only a small, controlled write/read/delete test is performed. Storage quota is reported as unknown to avoid memory pressure or browser crashes.
+    </p>
+    <table class="diag-table">
+      <thead>
+        <tr>
+          <th class="col-status">Status</th>
+          <th class="col-name">API</th>
+          <th class="col-desc">Result / Details</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyStorage"></tbody>
+    </table>
+  </div>
+
+  <!-- Card 5: DOM, Input & HTML5 Features -->
+  <div class="card">
+    <h2>5. DOM, Input & HTML5 Features</h2>
+    <table class="diag-table">
+      <thead>
+        <tr>
+          <th class="col-status">Status</th>
+          <th class="col-name">Feature</th>
+          <th class="col-desc">Result / Details</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyDom"></tbody>
+    </table>
+  </div>
+
+  <!-- Card 6: Interactive Touch Test Pad -->
+  <div class="card">
+    <h2>6. Interactive Touch Test Pad</h2>
+    <p style="font-size:0.85rem; color:#bbb;">
+      Touch, tap, or drag inside the box below to test hardware touch response and multi-touch tracking on the M1061.
+    </p>
+    <div id="touchPad" class="touch-pad">
+      Touch or Drag Here to Test
+    </div>
+    <div style="margin-top: 8px; font-size: 0.85rem; font-family: Consolas, monospace;" id="touchTelemetry">
+      Touches: 0 &bull; Coordinates: None
+    </div>
+  </div>
+
+  <!-- Card 7: User-Initiated Network Probes -->
+  <div class="card">
+    <h2>7. Network & Protocol Probes (User-Initiated)</h2>
+    <p class="note">
+      Dormant until explicitly initiated. No automatic network calls are executed.
+    </p>
+    <p style="font-size:0.85rem; color:#bbb;">
+      Note: Browser security models do not allow JavaScript to reliably distinguish between DNS failure, TLS negotiation aborts, expired certificates, or CORS rejections. Observable properties (status, readyState, event type, elapsed time) are reported as observed.
+    </p>
+
+    <div style="margin-top:10px;">
+      <label for="netProbeUrl" style="display:block; font-size:0.85rem; color:#90caf9; margin-bottom:4px;">Target Probe URL:</label>
+      <input type="text" id="netProbeUrl" value="https://example.com">
+
+      <label for="netProbeMethod" style="display:block; font-size:0.85rem; color:#90caf9; margin-bottom:4px;">Probe Method:</label>
+      <select id="netProbeMethod">
+        <option value="xhr">XMLHttpRequest (Level 2)</option>
+        <option value="fetch">Fetch API (if supported)</option>
+      </select>
+
+      <button id="btnRunNetProbe" class="btn btn-success" type="button">Run Network Probe</button>
+    </div>
+
+    <table class="diag-table" style="margin-top:12px;">
+      <thead>
+        <tr>
+          <th class="col-status">Status</th>
+          <th class="col-name">Metric</th>
+          <th class="col-desc">Observed Result</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyNet"></tbody>
+    </table>
+  </div>
+
+  <!-- Card 8: Diagnostic Report Export -->
+  <div class="card">
+    <h2>8. Diagnostic Report Export</h2>
+    <p style="font-size:0.85rem; color:#bbb;">
+      Copy or select the generated diagnostic log to report tablet findings back to the development environment.
+    </p>
+    <div style="margin-bottom: 8px;">
+      <button id="btnCopyReport" class="btn" type="button">Copy to Clipboard</button>
+      <button id="btnSelectReport" class="btn btn-secondary" type="button">Select All Text</button>
+      <span id="copyStatus" style="font-size:0.85rem; color:#81d4fa; margin-left:8px;"></span>
+    </div>
+    <textarea id="reportOutput" class="report-box" readonly></textarea>
+  </div>
+
+  <!-- JavaScript Suite (Strict ES5 execution) -->
+  <script>
+    (function () {
+      "use strict";
+
+      // Global state store for test results and metrics
+      var diagState = {
+        metrics: {},
+        results: []
+      };
+
+      var resizeEventCounter = 0;
+
+      // Status classification types
+      var STATUS = {
+        PASS: "PASS",
+        FAIL: "FAIL",
+        LIMITED: "LIMITED",
+        INFO: "INFO",
+        NOT_TESTED: "NOT TESTED"
+      };
+
+      // Helper: Record a test result
+      function recordResult(group, name, status, details) {
+        var entry = {
+          group: group,
+          name: name,
+          status: status,
+          details: details,
+          timestamp: new Date().getTime()
+        };
+        diagState.results.push(entry);
+        return entry;
+      }
+
+      // Helper: Render table row
+      function appendRow(tbodyId, status, name, details) {
+        var tbody = document.getElementById(tbodyId);
+        if (!tbody) {
+          return;
+        }
+
+        var tr = document.createElement("tr");
+
+        var tdStatus = document.createElement("td");
+        tdStatus.className = "col-status";
+        var badge = document.createElement("span");
+        badge.className = "badge " + getBadgeClass(status);
+        badge.appendChild(document.createTextNode(status));
+        tdStatus.appendChild(badge);
+
+        var tdName = document.createElement("td");
+        tdName.className = "col-name";
+        tdName.appendChild(document.createTextNode(name));
+
+        var tdDesc = document.createElement("td");
+        tdDesc.className = "col-desc";
+        tdDesc.appendChild(document.createTextNode(details));
+
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdName);
+        tr.appendChild(tdDesc);
+        tbody.appendChild(tr);
+      }
+
+      // Helper: Get CSS class for badge
+      function getBadgeClass(status) {
+        switch (status) {
+          case STATUS.PASS:
+            return "badge-pass";
+          case STATUS.FAIL:
+            return "badge-fail";
+          case STATUS.LIMITED:
+            return "badge-limited";
+          case STATUS.INFO:
+            return "badge-info";
+          case STATUS.NOT_TESTED:
+          default:
+            return "badge-not-tested";
+        }
+      }
+
+      // Update summary counters
+      function updateSummaryCounters() {
+        var passCount = 0;
+        var failCount = 0;
+        var limitedCount = 0;
+        var infoCount = 0;
+        var notTestedCount = 0;
+
+        for (var i = 0; i < diagState.results.length; i++) {
+          switch (diagState.results[i].status) {
+            case STATUS.PASS:
+              passCount++;
+              break;
+            case STATUS.FAIL:
+              failCount++;
+              break;
+            case STATUS.LIMITED:
+              limitedCount++;
+              break;
+            case STATUS.INFO:
+              infoCount++;
+              break;
+            case STATUS.NOT_TESTED:
+              notTestedCount++;
+              break;
+          }
+        }
+
+        var elPass = document.getElementById("cntPass");
+        var elFail = document.getElementById("cntFail");
+        var elLimited = document.getElementById("cntLimited");
+        var elInfo = document.getElementById("cntInfo");
+        var elNotTested = document.getElementById("cntNotTested");
+
+        if (elPass) elPass.innerText = "PASS: " + passCount;
+        if (elFail) elFail.innerText = "FAIL: " + failCount;
+        if (elLimited) elLimited.innerText = "LIMITED: " + limitedCount;
+        if (elInfo) elInfo.innerText = "INFO: " + infoCount;
+        if (elNotTested) elNotTested.innerText = "NOT TESTED: " + notTestedCount;
+      }
+
+      // Clear rendered tables and results
+      function resetDiagnostics() {
+        diagState.results = [];
+        var tables = ["tbodyEnv", "tbodyJs", "tbodyStorage", "tbodyDom", "tbodyNet"];
+        for (var i = 0; i < tables.length; i++) {
+          var tbody = document.getElementById(tables[i]);
+          if (tbody) {
+            tbody.innerHTML = "";
+          }
+        }
+        updateSummaryCounters();
+        updateReportText();
+      }
+
+      // Group 1: Live Viewport and Display Metrics (Dynamic, no hardcoding)
+      function measureDisplayMetrics() {
+        var screenW = window.screen ? window.screen.width : "N/A";
+        var screenH = window.screen ? window.screen.height : "N/A";
+        var availW = window.screen ? window.screen.availWidth : "N/A";
+        var availH = window.screen ? window.screen.availHeight : "N/A";
+        var colorDepth = window.screen ? window.screen.colorDepth : "N/A";
+
+        var innerW = window.innerWidth || "N/A";
+        var innerH = window.innerHeight || "N/A";
+
+        var clientW = document.documentElement ? document.documentElement.clientWidth : "N/A";
+        var clientH = document.documentElement ? document.documentElement.clientHeight : "N/A";
+
+        var dpr = window.devicePixelRatio || 1;
+
+        // Dynamic orientation detection
+        var orientDesc = "Unknown";
+        if (typeof window.orientation !== "undefined") {
+          orientDesc = "window.orientation: " + window.orientation + "deg";
+        } else if (window.screen && window.screen.orientation && window.screen.orientation.type) {
+          orientDesc = window.screen.orientation.type;
+        } else if (window.screen && window.screen.mozOrientation) {
+          orientDesc = "mozOrientation: " + window.screen.mozOrientation;
+        } else if (typeof innerW === "number" && typeof innerH === "number") {
+          orientDesc = (innerW >= innerH) ? "Aspect Landscape" : "Aspect Portrait";
+        }
+
+        // Store metrics
+        diagState.metrics = {
+          screenWidth: screenW,
+          screenHeight: screenH,
+          availWidth: availW,
+          availHeight: availH,
+          colorDepth: colorDepth,
+          innerWidth: innerW,
+          innerHeight: innerH,
+          clientWidth: clientW,
+          clientHeight: clientH,
+          devicePixelRatio: dpr,
+          orientation: orientDesc,
+          resizeEventCount: resizeEventCounter
+        };
+
+        // Update UI elements
+        var elScreen = document.getElementById("dispScreen");
+        var elInner = document.getElementById("dispInner");
+        var elClient = document.getElementById("dispClient");
+        var elDpr = document.getElementById("dispDPR");
+        var elOrientation = document.getElementById("dispOrientation");
+        var elResizeCount = document.getElementById("dispResizeCount");
+
+        if (elScreen) elScreen.innerText = screenW + " x " + screenH + " (" + colorDepth + "-bit)";
+        if (elInner) elInner.innerText = innerW + " x " + innerH + " px";
+        if (elClient) elClient.innerText = clientW + " x " + clientH + " px";
+        if (elDpr) elDpr.innerText = dpr.toString();
+        if (elOrientation) elOrientation.innerText = orientDesc;
+        if (elResizeCount) elResizeCount.innerText = resizeEventCounter.toString();
+      }
+
+      // Group 2: Platform and Environment Metadata
+      function runEnvironmentDiagnostics() {
+        var group = "Environment";
+
+        // Protocol
+        var protocol = window.location.protocol || "unknown:";
+        recordResult(group, "Protocol", STATUS.INFO, protocol);
+        appendRow("tbodyEnv", STATUS.INFO, "Host Protocol", protocol);
+
+        // Origin
+        var origin = window.location.origin || (window.location.protocol + "//" + window.location.host);
+        recordResult(group, "Origin", STATUS.INFO, origin || "file:/// or empty");
+        appendRow("tbodyEnv", STATUS.INFO, "Location Origin", origin || "file:/// or empty");
+
+        // User Agent
+        var ua = navigator.userAgent || "Unknown";
+        recordResult(group, "User Agent", STATUS.INFO, ua);
+        appendRow("tbodyEnv", STATUS.INFO, "User Agent", ua);
+
+        // Platform
+        var platform = navigator.platform || "Unknown";
+        recordResult(group, "Platform", STATUS.INFO, platform);
+        appendRow("tbodyEnv", STATUS.INFO, "Platform", platform);
+
+        // CPU Concurrency
+        var concurrency = (typeof navigator.hardwareConcurrency !== "undefined")
+          ? navigator.hardwareConcurrency.toString()
+          : "Not Exposed";
+        recordResult(group, "Hardware Concurrency", STATUS.INFO, concurrency);
+        appendRow("tbodyEnv", STATUS.INFO, "Hardware Concurrency", concurrency);
+
+        // Online Status
+        var isOnline = (typeof navigator.onLine !== "undefined")
+          ? (navigator.onLine ? "true (online)" : "false (offline)")
+          : "undefined";
+        recordResult(group, "navigator.onLine", STATUS.INFO, isOnline);
+        appendRow("tbodyEnv", STATUS.INFO, "navigator.onLine", isOnline);
+      }
+
+      // Group 3: JavaScript Engine & Syntax Verification
+      function runJavaScriptDiagnostics() {
+        var group = "JavaScript Engine";
+
+        // 1. Strict Mode
+        var isStrict = (function () { return !this; })();
+        recordResult(group, "Strict Mode", isStrict ? STATUS.PASS : STATUS.FAIL, isStrict ? "Active" : "Inactive");
+        appendRow("tbodyJs", isStrict ? STATUS.PASS : STATUS.FAIL, "Strict Mode Execution", isStrict ? "Functional" : "Failed");
+
+        // 2. ES5 JSON
+        var jsonOk = (typeof window.JSON !== "undefined" && typeof JSON.parse === "function" && typeof JSON.stringify === "function");
+        recordResult(group, "ES5 JSON", jsonOk ? STATUS.PASS : STATUS.FAIL, jsonOk ? "JSON.parse and JSON.stringify present" : "Missing");
+        appendRow("tbodyJs", jsonOk ? STATUS.PASS : STATUS.FAIL, "ES5 JSON API", jsonOk ? "Supported" : "Missing");
+
+        // 3. ES5 Array / Object methods
+        var es5Methods = (typeof Array.prototype.forEach === "function" &&
+          typeof Array.prototype.map === "function" &&
+          typeof Object.keys === "function" &&
+          typeof Object.create === "function");
+        recordResult(group, "ES5 Standard Library", es5Methods ? STATUS.PASS : STATUS.FAIL, es5Methods ? "forEach, map, Object.keys, Object.create present" : "Missing");
+        appendRow("tbodyJs", es5Methods ? STATUS.PASS : STATUS.FAIL, "ES5 Standard Library", es5Methods ? "Supported" : "Missing");
+
+        // 4. ES6 Promise
+        var promiseOk = false;
+        try {
+          if (typeof window.Promise !== "undefined" && typeof Promise.resolve === "function") {
+            var p = new Promise(function (res) { res(true); });
+            promiseOk = (typeof p.then === "function");
+          }
+        } catch (e) {
+          promiseOk = false;
+        }
+        recordResult(group, "ES6 Promise", promiseOk ? STATUS.PASS : STATUS.FAIL, promiseOk ? "Supported and instantiable" : "Unsupported");
+        appendRow("tbodyJs", promiseOk ? STATUS.PASS : STATUS.FAIL, "ES6 Promise", promiseOk ? "Supported" : "Unsupported");
+
+        // 5. ES6 Collections (Map, Set, Symbol)
+        var collectionsOk = false;
+        try {
+          collectionsOk = (typeof window.Map === "function" &&
+            typeof window.Set === "function" &&
+            typeof window.Symbol === "function");
+        } catch (e) {
+          collectionsOk = false;
+        }
+        recordResult(group, "ES6 Collections (Map, Set, Symbol)", collectionsOk ? STATUS.PASS : STATUS.FAIL, collectionsOk ? "Map, Set, Symbol present" : "Missing");
+        appendRow("tbodyJs", collectionsOk ? STATUS.PASS : STATUS.FAIL, "ES6 Collections (Map, Set, Symbol)", collectionsOk ? "Supported" : "Missing");
+
+        // 6. ES6 Syntax (let/const, Arrow function, Template literals, class)
+        var es6SyntaxOk = false;
+        try {
+          var testFn = new Function("'use strict'; let a = 1; const b = 2; var arrow = () => a + b; var str = `${arrow()}`; class TestClass { constructor() { this.x = 1; } } return new TestClass().x === 1 && str === '3';");
+          es6SyntaxOk = testFn();
+        } catch (e) {
+          es6SyntaxOk = false;
+        }
+        recordResult(group, "ES6 Syntax (let/const, arrow, template, class)", es6SyntaxOk ? STATUS.PASS : STATUS.FAIL, es6SyntaxOk ? "Evaluated and executed successfully" : "Parse error or unsupported");
+        appendRow("tbodyJs", es6SyntaxOk ? STATUS.PASS : STATUS.FAIL, "ES6 Syntax (let, arrow, class)", es6SyntaxOk ? "Supported" : "Unsupported");
+
+        // 7. ES2017 async / await (Supported in FF52+)
+        var asyncAwaitOk = false;
+        try {
+          var asyncFn = new Function("'use strict'; async function testAsync() { return 42; } return typeof testAsync === 'function';");
+          asyncAwaitOk = asyncFn();
+        } catch (e) {
+          asyncAwaitOk = false;
+        }
+        recordResult(group, "ES2017 async/await", asyncAwaitOk ? STATUS.PASS : STATUS.FAIL, asyncAwaitOk ? "Supported" : "Unsupported in this engine");
+        appendRow("tbodyJs", asyncAwaitOk ? STATUS.PASS : STATUS.FAIL, "ES2017 async/await", asyncAwaitOk ? "Supported" : "Unsupported");
+
+        // 8. Modern Syntax Probe: Optional Chaining (?.)
+        // Expected to fail on Firefox 55; classified as LIMITED (or INFO if somehow supported)
+        var optionalChainingOk = false;
+        try {
+          var optFn = new Function("'use strict'; var o = { a: { b: 10 } }; return o?.a?.b === 10;");
+          optionalChainingOk = optFn();
+        } catch (e) {
+          optionalChainingOk = false;
+        }
+        if (optionalChainingOk) {
+          recordResult(group, "Optional Chaining (?.)", STATUS.INFO, "Supported in this engine");
+          appendRow("tbodyJs", STATUS.INFO, "Optional Chaining (?.)", "Supported");
+        } else {
+          recordResult(group, "Optional Chaining (?.)", STATUS.LIMITED, "Unsupported syntax (Expected for Firefox 55; avoid in ATLAS modules)");
+          appendRow("tbodyJs", STATUS.LIMITED, "Optional Chaining (?.)", "Unsupported (Expected limitation)");
+        }
+
+        // 9. Modern Syntax Probe: Nullish Coalescing (??)
+        var nullishCoalesceOk = false;
+        try {
+          var nullishFn = new Function("'use strict'; var x = null ?? 'default'; return x === 'default';");
+          nullishCoalesceOk = nullishFn();
+        } catch (e) {
+          nullishCoalesceOk = false;
+        }
+        if (nullishCoalesceOk) {
+          recordResult(group, "Nullish Coalescing (??)", STATUS.INFO, "Supported in this engine");
+          appendRow("tbodyJs", STATUS.INFO, "Nullish Coalescing (??)", "Supported");
+        } else {
+          recordResult(group, "Nullish Coalescing (??)", STATUS.LIMITED, "Unsupported syntax (Expected for Firefox 55; avoid in ATLAS modules)");
+          appendRow("tbodyJs", STATUS.LIMITED, "Nullish Coalescing (??)", "Unsupported (Expected limitation)");
+        }
+      }
+
+      // Group 4: Controlled Storage Verification (No quota stress testing)
+      function runStorageDiagnostics() {
+        var group = "Storage";
+
+        // 1. localStorage (Controlled small write/read/delete)
+        var lsStatus = STATUS.FAIL;
+        var lsDetails = "Failed";
+        var lsKey = "__atlas_diag_test__";
+        try {
+          if (typeof window.localStorage !== "undefined") {
+            var lsVal = "ATLAS_OK_" + new Date().getTime();
+            window.localStorage.setItem(lsKey, lsVal);
+            var readVal = window.localStorage.getItem(lsKey);
+            window.localStorage.removeItem(lsKey);
+            var verifyDelete = window.localStorage.getItem(lsKey);
+
+            if (readVal === lsVal && verifyDelete === null) {
+              // Functional test passed; quota intentionally reported as unknown
+              lsStatus = STATUS.PASS;
+              lsDetails = "Controlled write/read/delete verified. Total quota unknown (not stress-tested).";
+            } else {
+              lsStatus = STATUS.FAIL;
+              lsDetails = "Read/write mismatch or removal failed.";
+            }
+          } else {
+            lsStatus = STATUS.FAIL;
+            lsDetails = "window.localStorage is undefined.";
+          }
+        } catch (e) {
+          lsStatus = STATUS.LIMITED;
+          lsDetails = "Exception: " + (e.name || "Error") + " - " + (e.message || "Storage access restricted");
+        } finally {
+          try {
+            if (typeof window.localStorage !== "undefined") {
+              window.localStorage.removeItem(lsKey);
+            }
+          } catch (ignoredLs) {}
+        }
+        recordResult(group, "localStorage", lsStatus, lsDetails);
+        appendRow("tbodyStorage", lsStatus, "localStorage", lsDetails);
+
+        // 2. sessionStorage (Controlled test)
+        var ssStatus = STATUS.FAIL;
+        var ssDetails = "Failed";
+        var ssKey = "__atlas_diag_sess__";
+        try {
+          if (typeof window.sessionStorage !== "undefined") {
+            var ssVal = "SESS_OK_" + new Date().getTime();
+            window.sessionStorage.setItem(ssKey, ssVal);
+            var ssRead = window.sessionStorage.getItem(ssKey);
+            window.sessionStorage.removeItem(ssKey);
+            var ssVerifyDelete = window.sessionStorage.getItem(ssKey);
+
+            if (ssRead === ssVal && ssVerifyDelete === null) {
+              ssStatus = STATUS.PASS;
+              ssDetails = "Controlled write/read/delete verified.";
+            } else {
+              ssStatus = STATUS.FAIL;
+              ssDetails = "Read/write mismatch or removal failed.";
+            }
+          } else {
+            ssStatus = STATUS.FAIL;
+            ssDetails = "window.sessionStorage is undefined.";
+          }
+        } catch (e) {
+          ssStatus = STATUS.LIMITED;
+          ssDetails = "Exception: " + (e.name || "Error") + " - " + (e.message || "Access restricted");
+        } finally {
+          try {
+            if (typeof window.sessionStorage !== "undefined") {
+              window.sessionStorage.removeItem(ssKey);
+            }
+          } catch (ignoredSs) {}
+        }
+        recordResult(group, "sessionStorage", ssStatus, ssDetails);
+        appendRow("tbodyStorage", ssStatus, "sessionStorage", ssDetails);
+
+        // 3. IndexedDB
+        var idbStatus = STATUS.FAIL;
+        var idbDetails = "window.indexedDB is undefined";
+        try {
+          var idb = window.indexedDB || window.mozIndexedDB;
+          if (idb) {
+            idbStatus = STATUS.PASS;
+            idbDetails = "IndexedDB factory present (" + (window.indexedDB ? "standard" : "mozIndexedDB") + ").";
+          } else {
+            idbStatus = STATUS.FAIL;
+            idbDetails = "IndexedDB not available.";
+          }
+        } catch (e) {
+          idbStatus = STATUS.LIMITED;
+          idbDetails = "Exception probing IndexedDB: " + (e.message || "Restricted");
+        }
+        recordResult(group, "IndexedDB", idbStatus, idbDetails);
+        appendRow("tbodyStorage", idbStatus, "IndexedDB", idbDetails);
+
+        // 4. Cookies
+        var cookieStatus = STATUS.INFO;
+        var cookieDetails = "navigator.cookieEnabled: " + (navigator.cookieEnabled ? "true" : "false");
+        try {
+          if (window.location.protocol === "file:") {
+            cookieStatus = STATUS.LIMITED;
+            cookieDetails += " (Note: Cookies are typically restricted or disabled under file:/// protocol)";
+          }
+        } catch (e) {
+          cookieDetails += " (Exception inspecting cookies)";
+        }
+        recordResult(group, "Cookies", cookieStatus, cookieDetails);
+        appendRow("tbodyStorage", cookieStatus, "Cookie Support", cookieDetails);
+      }
+
+      // Group 5: DOM, Input & HTML5 Features
+      function runDomDiagnostics() {
+        var group = "DOM & HTML5";
+
+        // 1. Touch Events
+        var hasTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+        var touchDetails = hasTouch
+          ? "ontouchstart present; maxTouchPoints=" + (navigator.maxTouchPoints || 0)
+          : "Touch events not detected in window";
+        var touchStatus = hasTouch ? STATUS.PASS : STATUS.LIMITED;
+        recordResult(group, "Touch Events", touchStatus, touchDetails);
+        appendRow("tbodyDom", touchStatus, "Touch Events (ontouchstart)", touchDetails);
+
+        // 2. Pointer Events
+        var hasPointer = (typeof window.PointerEvent !== "undefined");
+        var pointerStatus = hasPointer ? STATUS.PASS : STATUS.LIMITED;
+        var pointerDetails = hasPointer ? "window.PointerEvent supported" : "PointerEvent undefined (Expected for Gecko 55 on Android 4)";
+        recordResult(group, "Pointer Events", pointerStatus, pointerDetails);
+        appendRow("tbodyDom", pointerStatus, "Pointer Events", pointerDetails);
+
+        // 3. HTML5 Download Attribute
+        var a = document.createElement("a");
+        var hasDownload = ("download" in a);
+        var dlStatus = hasDownload ? STATUS.PASS : STATUS.LIMITED;
+        var dlDetails = hasDownload ? "Supported on <a> elements" : "Not supported on <a> elements";
+        recordResult(group, "Download Attribute", dlStatus, dlDetails);
+        appendRow("tbodyDom", dlStatus, "HTML5 <a> download attribute", dlDetails);
+
+        // 4. Blob & Object URL
+        var blobOk = false;
+        var blobDetails = "Unsupported";
+        try {
+          if (typeof window.Blob !== "undefined" && typeof window.URL !== "undefined" && typeof window.URL.createObjectURL === "function") {
+            var b = new Blob(["test"], { type: "text/plain" });
+            var url = window.URL.createObjectURL(b);
+            if (url && typeof url === "string") {
+              blobOk = true;
+              blobDetails = "Blob construction and URL.createObjectURL verified";
+              window.URL.revokeObjectURL(url);
+            }
+          }
+        } catch (e) {
+          blobOk = false;
+          blobDetails = "Exception: " + (e.message || "Failed");
+        }
+        recordResult(group, "Blob & Object URL", blobOk ? STATUS.PASS : STATUS.FAIL, blobDetails);
+        appendRow("tbodyDom", blobOk ? STATUS.PASS : STATUS.FAIL, "Blob & URL.createObjectURL", blobDetails);
+
+        // 5. Page Visibility API
+        var hasVisibility = (typeof document.hidden !== "undefined" || typeof document.visibilityState !== "undefined");
+        var visStatus = hasVisibility ? STATUS.PASS : STATUS.LIMITED;
+        var visDetails = hasVisibility
+          ? "Supported (visibilityState: " + (document.visibilityState || "unknown") + ")"
+          : "Page Visibility API undefined";
+        recordResult(group, "Page Visibility API", visStatus, visDetails);
+        appendRow("tbodyDom", visStatus, "Page Visibility API", visDetails);
+
+        // 6. Canvas 2D Rendering Context
+        var canvasOk = false;
+        var canvasDetails = "Canvas element unsupported";
+        try {
+          var cvs = document.createElement("canvas");
+          if (cvs && typeof cvs.getContext === "function") {
+            var ctx = cvs.getContext("2d");
+            if (ctx) {
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, 10, 10);
+              canvasOk = true;
+              canvasDetails = "Canvas 2D context initialized and drawing verified";
+            }
+          }
+        } catch (e) {
+          canvasOk = false;
+          canvasDetails = "Canvas 2D error: " + (e.message || "Failed");
+        }
+        recordResult(group, "Canvas 2D Context", canvasOk ? STATUS.PASS : STATUS.FAIL, canvasDetails);
+        appendRow("tbodyDom", canvasOk ? STATUS.PASS : STATUS.FAIL, "Canvas 2D Context", canvasDetails);
+      }
+
+      // Group 6: Network & Protocol Probes (User-Initiated Only)
+      function initNetworkSection() {
+        var tbody = document.getElementById("tbodyNet");
+        if (tbody && tbody.children.length === 0) {
+          appendRow("tbodyNet", STATUS.NOT_TESTED, "Network Probe", "Dormant. Click 'Run Network Probe' to test.");
+          recordResult("Network", "Probe Initial State", STATUS.NOT_TESTED, "Not initiated.");
+        }
+      }
+
+      function runNetworkProbe() {
+        var urlInput = document.getElementById("netProbeUrl");
+        var methodSelect = document.getElementById("netProbeMethod");
+        var tbody = document.getElementById("tbodyNet");
+        if (!urlInput || !methodSelect || !tbody) {
+          return;
+        }
+
+        var url = urlInput.value || "https://example.com";
+        var method = methodSelect.value || "xhr";
+
+        tbody.innerHTML = "";
+        appendRow("tbodyNet", STATUS.INFO, "Target URL", url);
+        appendRow("tbodyNet", STATUS.INFO, "Probe Engine", method === "fetch" ? "Fetch API" : "XMLHttpRequest (Level 2)");
+
+        var startTime = new Date().getTime();
+
+        if (method === "fetch") {
+          if (typeof window.fetch !== "function") {
+            var failMsg = "Fetch API is not supported in this browser version.";
+            appendRow("tbodyNet", STATUS.FAIL, "Fetch Support", failMsg);
+            recordResult("Network", "Fetch Probe", STATUS.FAIL, failMsg);
+            updateSummaryCounters();
+            updateReportText();
+            return;
+          }
+
+          try {
+            window.fetch(url, { method: "GET", mode: "cors" })
+              .then(function (resp) {
+                var elapsed = new Date().getTime() - startTime;
+                var details = "HTTP " + resp.status + " " + (resp.statusText || "") + " (" + elapsed + " ms, ok=" + resp.ok + ", type=" + resp.type + ")";
+                var st = resp.ok ? STATUS.PASS : STATUS.LIMITED;
+                appendRow("tbodyNet", st, "Fetch Response", details);
+                recordResult("Network", "Fetch Response", st, details);
+                updateSummaryCounters();
+                updateReportText();
+              })
+              .catch(function (err) {
+                var elapsed = new Date().getTime() - startTime;
+                var errDesc = "Fetch rejected after " + elapsed + " ms: " + (err ? (err.name + " - " + err.message) : "NetworkError");
+                appendRow("tbodyNet", STATUS.FAIL, "Fetch Observable Error", errDesc);
+                appendRow("tbodyNet", STATUS.INFO, "Security Model Limitation", "Browser API cannot determine if root cause was DNS, TLS, cert validation, or CORS.");
+                recordResult("Network", "Fetch Error", STATUS.FAIL, errDesc);
+                updateSummaryCounters();
+                updateReportText();
+              });
+          } catch (e) {
+            var syncElapsed = new Date().getTime() - startTime;
+            var syncErr = "Fetch threw synchronous exception after " + syncElapsed + " ms: " + (e.message || "Error");
+            appendRow("tbodyNet", STATUS.FAIL, "Synchronous Exception", syncErr);
+            recordResult("Network", "Fetch Sync Exception", STATUS.FAIL, syncErr);
+            updateSummaryCounters();
+            updateReportText();
+          }
+        } else {
+          // XMLHttpRequest probe
+          try {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", url, true);
+            xhr.timeout = 10000; // 10 second timeout
+
+            xhr.onreadystatechange = function () {
+              // Log progress
+            };
+
+            xhr.onload = function () {
+              var elapsed = new Date().getTime() - startTime;
+              var st = (xhr.status >= 200 && xhr.status < 400) ? STATUS.PASS : STATUS.LIMITED;
+              var details = "HTTP status: " + xhr.status + " (" + (xhr.statusText || "OK") + ") readyState=" + xhr.readyState + " (" + elapsed + " ms)";
+              appendRow("tbodyNet", st, "XHR Observable Result", details);
+              recordResult("Network", "XHR Result", st, details);
+              updateSummaryCounters();
+              updateReportText();
+            };
+
+            xhr.onerror = function (evt) {
+              var elapsed = new Date().getTime() - startTime;
+              var details = "XHR 'error' event fired (readyState=" + xhr.readyState + ", status=" + xhr.status + ", elapsed=" + elapsed + " ms)";
+              appendRow("tbodyNet", STATUS.FAIL, "XHR Observable Error", details);
+              appendRow("tbodyNet", STATUS.INFO, "Security Model Limitation", "Browser API cannot determine if root cause was DNS, TLS, cert validation, or CORS.");
+              recordResult("Network", "XHR Error", STATUS.FAIL, details);
+              updateSummaryCounters();
+              updateReportText();
+            };
+
+            xhr.ontimeout = function () {
+              var elapsed = new Date().getTime() - startTime;
+              var details = "XHR timed out after " + elapsed + " ms (timeout threshold was 10,000 ms)";
+              appendRow("tbodyNet", STATUS.FAIL, "XHR Timeout", details);
+              recordResult("Network", "XHR Timeout", STATUS.FAIL, details);
+              updateSummaryCounters();
+              updateReportText();
+            };
+
+            xhr.send(null);
+          } catch (e) {
+            var elapsedExc = new Date().getTime() - startTime;
+            var excDetails = "Exception initializing XHR (" + elapsedExc + " ms): " + (e.message || "Failed");
+            appendRow("tbodyNet", STATUS.FAIL, "XHR Exception", excDetails);
+            recordResult("Network", "XHR Exception", STATUS.FAIL, excDetails);
+            updateSummaryCounters();
+            updateReportText();
+          }
+        }
+      }
+
+      // Group 7: Interactive Touch Test Pad
+      function setupTouchTestPad() {
+        var pad = document.getElementById("touchPad");
+        var telemetry = document.getElementById("touchTelemetry");
+        if (!pad || !telemetry) {
+          return;
+        }
+
+        function updateTouchView(e, label) {
+          var touches = e.touches ? e.touches : [];
+          var count = touches.length;
+          var coordStr = "";
+
+          for (var i = 0; i < count; i++) {
+            var t = touches[i];
+            coordStr += " [#" + (i + 1) + " X:" + Math.round(t.clientX) + " Y:" + Math.round(t.clientY) + "]";
+          }
+
+          if (count === 0 && e.type === "touchend") {
+            pad.className = "touch-pad";
+            telemetry.innerText = "Touch Ended &bull; Last Event: " + label;
+          } else {
+            pad.className = "touch-pad active";
+            telemetry.innerText = "Event: " + label + " &bull; Active Touches: " + count + " &bull; Coordinates:" + (coordStr || " None");
+          }
+        }
+
+        pad.addEventListener("touchstart", function (e) {
+          updateTouchView(e, "touchstart");
+        }, false);
+
+        pad.addEventListener("touchmove", function (e) {
+          e.preventDefault(); // Prevent accidental scroll while dragging inside the pad
+          updateTouchView(e, "touchmove");
+        }, false);
+
+        pad.addEventListener("touchend", function (e) {
+          updateTouchView(e, "touchend");
+        }, false);
+
+        pad.addEventListener("touchcancel", function (e) {
+          updateTouchView(e, "touchcancel");
+        }, false);
+      }
+
+      // Group 8: Diagnostic Report Export
+      function updateReportText() {
+        var reportBox = document.getElementById("reportOutput");
+        if (!reportBox) {
+          return;
+        }
+
+        var reportObj = {
+          title: "ATLAS Browser Diagnostics 0.1",
+          generatedAt: new Date().toISOString ? new Date().toISOString() : new Date().toString(),
+          metrics: diagState.metrics,
+          results: diagState.results
+        };
+
+        var outputText = "";
+        try {
+          outputText = JSON.stringify(reportObj, null, 2);
+        } catch (e) {
+          outputText = "Error serializing diagnostic report to JSON: " + (e.message || "Unknown error");
+        }
+
+        reportBox.value = outputText;
+      }
+
+      // Copy / Select All handlers
+      function setupExportHandlers() {
+        var btnCopy = document.getElementById("btnCopyReport");
+        var btnSelect = document.getElementById("btnSelectReport");
+        var reportBox = document.getElementById("reportOutput");
+        var copyStatus = document.getElementById("copyStatus");
+
+        if (btnSelect && reportBox) {
+          btnSelect.onclick = function () {
+            reportBox.focus();
+            reportBox.select();
+            if (copyStatus) copyStatus.innerText = "All text selected.";
+          };
+        }
+
+        if (btnCopy && reportBox) {
+          btnCopy.onclick = function () {
+            reportBox.focus();
+            reportBox.select();
+            var successful = false;
+            try {
+              successful = document.execCommand("copy");
+            } catch (err) {
+              successful = false;
+            }
+
+            if (copyStatus) {
+              if (successful) {
+                copyStatus.innerText = "Copied to clipboard!";
+              } else {
+                copyStatus.innerText = "Please use Select All and Copy manually.";
+              }
+            }
+          };
+        }
+      }
+
+      // Master runner for all automated diagnostic groups
+      function runAllDiagnostics() {
+        resetDiagnostics();
+        measureDisplayMetrics();
+        runEnvironmentDiagnostics();
+        runJavaScriptDiagnostics();
+        runStorageDiagnostics();
+        runDomDiagnostics();
+        initNetworkSection();
+        updateSummaryCounters();
+        updateReportText();
+      }
+
+      // Event listeners for window resize & orientation change
+      window.addEventListener("resize", function () {
+        resizeEventCounter++;
+        measureDisplayMetrics();
+        updateReportText();
+      }, false);
+
+      window.addEventListener("orientationchange", function () {
+        resizeEventCounter++;
+        measureDisplayMetrics();
+        updateReportText();
+      }, false);
+
+      // DOM Initialization
+      window.addEventListener("DOMContentLoaded", function () {
+        // Wire up buttons
+        var btnRun = document.getElementById("btnRunAll");
+        if (btnRun) {
+          btnRun.onclick = runAllDiagnostics;
+        }
+
+        var btnReset = document.getElementById("btnReset");
+        if (btnReset) {
+          btnReset.onclick = function () {
+            resetDiagnostics();
+            measureDisplayMetrics();
+            initNetworkSection();
+            updateSummaryCounters();
+            updateReportText();
+          };
+        }
+
+        var btnNet = document.getElementById("btnRunNetProbe");
+        if (btnNet) {
+          btnNet.onclick = runNetworkProbe;
+        }
+
+        // Setup touch and export modules
+        setupTouchTestPad();
+        setupExportHandlers();
+
+        // Initial measurement and run
+        measureDisplayMetrics();
+        initNetworkSection();
+        runAllDiagnostics();
+      }, false);
+
+    })();
+  </script>
+</body>
+</html>
